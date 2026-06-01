@@ -12,13 +12,13 @@ Treat C drive cleanup as potentially destructive. Start with an audit, explain e
 ## Workflow
 
 1. Confirm the target is Windows and identify the system drive, normally `C:`.
-2. Run the bundled audit script first:
+2. Run the bundled audit script first. Use `-Preset Deep` when the user asks to free as much space as safely possible:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -ReportPath ./c-drive-cleaner-report.json
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -Preset Deep -ReportPath ./c-drive-cleaner-report.json
 ```
 
-3. Summarize free space, reclaimable estimates, skipped/error paths, and any category that requires admin rights or closed apps.
+3. Summarize free space, reclaimable estimates, skipped/error paths, and any category that requires admin rights, closed apps, or diagnostic-data tradeoffs.
 4. Ask for approval before deleting anything. Name the categories and age threshold.
 5. Run cleanup only with `-Mode Clean -ConfirmClean` and only for approved categories.
 6. Re-run audit after cleanup and report the before/after free-space delta.
@@ -31,6 +31,8 @@ Use these defaults unless the user requests otherwise:
 - Include user temp and Windows temp in the first cleanup proposal.
 - Keep browser caches opt-in with `-IncludeBrowserCaches`.
 - Keep recycle bin opt-in with `-IncludeRecycleBin`.
+- Use `-Preset Deep` for a high-yield audit when the user asks for maximum space, then ask before cleaning.
+- Use `-Preset Maximum` only after the user accepts a stronger cleanup that includes DISM component store cleanup.
 - Do not remove downloads, documents, desktop files, OneDrive folders, project folders, source code, package managers, virtual environments, or application install directories automatically.
 - Do not use broad commands like `Remove-Item C:\*`, `rd /s C:\...`, `git clean`, or wildcard deletion outside the script's allowlist.
 
@@ -44,10 +46,10 @@ Common audit:
 powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -MinAgeDays 7 -ReportPath ./c-drive-cleaner-report.json
 ```
 
-Audit including browser caches and large user-file hints:
+Deep audit for more reclaimable space:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -IncludeBrowserCaches -ScanLargeFiles -ReportPath ./c-drive-cleaner-report.json
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -Preset Deep -MinAgeDays 7 -ReportPath ./c-drive-cleaner-deep-report.json
 ```
 
 Approved cleanup of temp files only:
@@ -62,6 +64,12 @@ Approved cleanup including browser caches:
 powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Clean -ConfirmClean -MinAgeDays 7 -IncludeBrowserCaches -ReportPath ./c-drive-cleaner-after.json
 ```
 
+Maximum cleanup after the user approves the audit categories and DISM component cleanup:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Clean -Preset Maximum -ConfirmClean -MinAgeDays 7 -ReportPath ./c-drive-cleaner-maximum-after.json
+```
+
 ## Reporting
 
 Report in this shape:
@@ -70,6 +78,7 @@ Report in this shape:
 - Categories scanned, including age threshold and whether they were cleaned.
 - Categories skipped because of permissions, locked files, or missing paths.
 - Files the script refused to touch because they were outside the allowlist.
+- DISM component cleanup result when `-RunComponentCleanup` or `-Preset Maximum` is used.
 - Recommended next step, such as Windows Storage Sense, Disk Cleanup, uninstalling large apps, or manually reviewing large files.
 
 ## References
