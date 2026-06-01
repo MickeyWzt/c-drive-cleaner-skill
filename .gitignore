@@ -1,0 +1,6 @@
+*.log
+*.tmp
+*-report.json
+*-after.json
+.DS_Store
+Thumbs.db
