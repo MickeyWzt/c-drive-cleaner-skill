@@ -1,0 +1,92 @@
+{
+  "StartedAt": "2026-06-01T10:57:40.8612852+08:00",
+  "FinishedAt": "2026-06-01T10:57:46.3568202+08:00",
+  "Mode": "Audit",
+  "Preset": "Deep",
+  "Drive": "C:",
+  "MinAgeDays": 7,
+  "IsAdministrator": false,
+  "IncludeBrowserCaches": true,
+  "IncludeRecycleBin": true,
+  "IncludeWindowsUpdateCache": true,
+  "IncludeDeliveryOptimizationCache": true,
+  "IncludeErrorReports": true,
+  "IncludeThumbnailCache": true,
+  "IncludeShaderCaches": true,
+  "IncludeDiagnosticDumps": true,
+  "ScanLargeFiles": true,
+  "RunComponentCleanup": false,
+  "FreeSpaceBefore": {
+    "Name": "C:",
+    "FreeBytes": 55883059200,
+    "UsedBytes": 158865301504,
+    "TotalBytes": 214748360704,
+    "Free": "52.05 GB",
+    "Used": "147.95 GB",
+    "Total": "200.00 GB"
+  },
+  "FreeSpaceAfter": {
+    "Name": "C:",
+    "FreeBytes": 55883059200,
+    "UsedBytes": 158865301504,
+    "TotalBytes": 214748360704,
+    "Free": "52.05 GB",
+    "Used": "147.95 GB",
+    "Total": "200.00 GB"
+  },
+  "EstimatedReclaimableBytes": 1421975552,
+  "EstimatedReclaimable": "1.32 GB",
+  "DeletedBytes": 0,
+  "Deleted": "0 B",
+  "Targets": [
+    {
+      "Category": "User temp",
+      "Path": "C:\\Users\\example\\AppData\\Local\\Temp",
+      "ResolvedPath": "C:\\Users\\example\\AppData\\Local\\Temp",
+      "Included": true,
+      "FileCount": 573,
+      "Bytes": 280191093,
+      "HumanSize": "267.21 MB",
+      "CleanMethod": "DeleteFiles",
+      "Risk": "Low",
+      "Errors": [
+        "Access to a locked temp file is denied."
+      ]
+    },
+    {
+      "Category": "Windows Update download cache",
+      "Path": "C:\\Windows\\SoftwareDistribution\\Download",
+      "ResolvedPath": "C:\\Windows\\SoftwareDistribution\\Download",
+      "Included": true,
+      "FileCount": 184,
+      "Bytes": 913309696,
+      "HumanSize": "871.00 MB",
+      "CleanMethod": "DeleteFiles",
+      "Risk": "Admin recommended; skip if updates are actively installing",
+      "Errors": []
+    },
+    {
+      "Category": "Recycle Bin",
+      "Path": "C:\\$Recycle.Bin",
+      "ResolvedPath": "C:\\$Recycle.Bin",
+      "Included": true,
+      "FileCount": 24,
+      "Bytes": 228474763,
+      "HumanSize": "217.89 MB",
+      "CleanMethod": "RecycleBin",
+      "Risk": "Deletes user-discarded files permanently",
+      "Errors": []
+    }
+  ],
+  "CleanupResults": [],
+  "RecycleBin": null,
+  "ComponentCleanup": null,
+  "LargeFileHints": [
+    {
+      "Path": "C:\\Users\\example\\Videos\\large-archive.zip",
+      "Bytes": 3221225472,
+      "HumanSize": "3.00 GB",
+      "LastWriteTime": "2025-12-20T12:00:00"
+    }
+  ]
+}
