@@ -1,4 +1,4 @@
 interface:
   display_name: "C Drive Cleaner"
-  short_description: "Safely audit and clean reclaimable Windows C drive space."
-  default_prompt: "Use $c-drive-cleaner to audit my Windows C drive and prepare a safe cleanup plan."
+  short_description: "Safely audit and deeply clean reclaimable Windows C drive space."
+  default_prompt: "Use $c-drive-cleaner to run a deep audit of my Windows C drive and prepare a safe cleanup plan."
