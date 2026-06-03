@@ -9,6 +9,14 @@ It is built for the boring but important version of disk cleanup: scan first, sh
 
 If this helped you avoid an unsafe cleanup command, please consider starring the repo so other Windows + Codex users can find it.
 
+## Project Links
+
+- [Support and troubleshooting](SUPPORT.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Safety reference](c-drive-cleaner/references/safety.md)
+
 ## Why Use This
 
 Windows cleanup requests can get dangerous quickly. This skill gives Codex a cautious workflow and a deterministic PowerShell script instead of improvising deletion commands.
