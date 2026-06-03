@@ -11,6 +11,15 @@ It is built for the boring but important version of disk cleanup: scan first, sh
 
 If this helped you avoid an unsafe cleanup command, please consider starring the repo so other Windows + Codex users can find it.
 
+## At a Glance
+
+| Field | Details |
+| --- | --- |
+| Project status | Working Codex skill and PowerShell cleanup script for Windows. |
+| Best for | Auditing reclaimable `C:` drive space before deciding what to clean. |
+| First thing to try | Run an audit-only command and inspect the JSON report before any cleanup. |
+| Important caveat | It intentionally avoids personal folders and requires explicit approval for cleanup actions. |
+
 ## Project Links
 
 - [Development guide](docs/DEVELOPMENT.md)
