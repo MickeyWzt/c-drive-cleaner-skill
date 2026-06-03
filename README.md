@@ -13,6 +13,7 @@ If this helped you avoid an unsafe cleanup command, please consider starring the
 ## Project Links
 
 - [Support and troubleshooting](SUPPORT.md)
+- [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
