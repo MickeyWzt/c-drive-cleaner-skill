@@ -1,5 +1,6 @@
 # C Drive Cleaner Skill
 
+[![CI](https://github.com/MickeyWzt/c-drive-cleaner-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/MickeyWzt/c-drive-cleaner-skill/actions/workflows/ci.yml)
 [![GitHub stars](https://img.shields.io/github/stars/MickeyWzt/c-drive-cleaner-skill?style=social)](https://github.com/MickeyWzt/c-drive-cleaner-skill/stargazers)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
