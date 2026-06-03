@@ -24,6 +24,7 @@ If this helped you avoid an unsafe cleanup command, please consider starring the
 
 - [Development guide](docs/DEVELOPMENT.md)
 - [FAQ](docs/FAQ.md)
+- [Examples](docs/EXAMPLES.md)
 - [Support and troubleshooting](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
