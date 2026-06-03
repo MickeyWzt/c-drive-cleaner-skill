@@ -18,6 +18,7 @@ If this helped you avoid an unsafe cleanup command, please consider starring the
 - [Changelog](CHANGELOG.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
 - [Security policy](SECURITY.md)
 - [Safety reference](c-drive-cleaner/references/safety.md)
 
