@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a safer cleanup category, report improvement, or workflow enhancement
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What cleanup or audit problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: paths
+    attributes:
+      label: Paths or cleanup category
+      description: List exact paths if this affects cleanup targets.
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety boundary
+      description: Explain why this does not risk deleting personal files or non-allowlisted data.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
