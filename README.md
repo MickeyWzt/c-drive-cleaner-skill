@@ -3,6 +3,7 @@
 [![CI](https://github.com/MickeyWzt/c-drive-cleaner-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/MickeyWzt/c-drive-cleaner-skill/actions/workflows/ci.yml)
 [![GitHub stars](https://img.shields.io/github/stars/MickeyWzt/c-drive-cleaner-skill?style=social)](https://github.com/MickeyWzt/c-drive-cleaner-skill/stargazers)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PowerShell](https://img.shields.io/badge/PowerShell-script-blue.svg)](c-drive-cleaner/scripts/c_drive_cleaner.ps1)
 
 A safety-first Codex skill for auditing and cleaning reclaimable space on a Windows `C:` drive.
 
