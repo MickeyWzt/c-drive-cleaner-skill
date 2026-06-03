@@ -1,0 +1,44 @@
+name: Bug report
+description: Report an audit, cleanup, report, or path-safety problem
+title: "[Bug]: "
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows and PowerShell version
+      placeholder: Windows 11, PowerShell 5.1 or 7.x
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command
+      render: powershell
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Audit
+        - Clean
+    validations:
+      required: true
+  - type: input
+    id: preset
+    attributes:
+      label: Preset and flags
+      placeholder: Standard, Deep, Maximum, IncludeBrowserCaches, IncludeRecycleBin
+  - type: textarea
+    id: report
+    attributes:
+      label: Report excerpt
+      description: Paste only the relevant JSON lines. Do not include private paths you do not want public.
