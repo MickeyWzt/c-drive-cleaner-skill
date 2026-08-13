@@ -2,6 +2,16 @@
 
 These examples show safe cleanup workflows. Start with audit-only commands and review the report before approving any cleanup.
 
+## Example 0: Comprehensive Read-Only Inventory
+
+Use this when the request is “scan the whole C drive” or the source of disk usage is unclear.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\storage_inventory.ps1 -Drive C: -MaxDepth 5 -ReportPath .\c-drive-inventory.json
+```
+
+Review directory hotspots, top files, inaccessible samples, and skipped reparse points. Logical directory totals are advisory and may overlap because of NTFS hard links.
+
 ## Example 1: Basic Audit
 
 Use this as the first command on a new machine.
@@ -57,3 +67,13 @@ Include:
 - Audit report excerpt with private paths removed.
 - Error messages.
 - Whether the command was audit-only or clean mode.
+
+## Example 6: Audit Opt-In High-Yield Caches
+
+Package downloads, NVIDIA update artifacts, and installer temp are intentionally not part of any preset. Audit them explicitly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludePackageManagerCaches -IncludeNvidiaDownloadCache -IncludeInstallerTemp -MinAgeDays 7 -ReportPath .\c-drive-cleaner-extra-report.json
+```
+
+If approved, repeat the exact switches with `-Mode Clean -ConfirmClean`. Expect future package, driver, or application updates to download files again.

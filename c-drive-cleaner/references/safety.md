@@ -14,6 +14,10 @@ The bundled script may automate only these categories:
 - Explorer thumbnail and icon cache database files when explicitly requested or included by a deep preset.
 - DirectX and NVIDIA shader caches when explicitly requested or included by a deep preset.
 - Diagnostic dump files such as user crash dumps, Windows minidumps, and `C:\Windows\MEMORY.DMP` when explicitly requested or included by a deep preset.
+- Overwolf crash dumps under `%LOCALAPPDATA%\Overwolf\CrashDumps` when diagnostic dumps are explicitly requested.
+- pip, npm/npx, and uv download caches only with `-IncludePackageManagerCaches`. These are never included by a preset.
+- NVIDIA App downloaded driver/application artifacts only with `-IncludeNvidiaDownloadCache`. This exact `ProgramData` path is the only exception to the general `ProgramData` prohibition.
+- Squirrel installer temporary files only with `-IncludeInstallerTemp`.
 - Windows component store cleanup through `dism.exe /Online /Cleanup-Image /StartComponentCleanup` when explicitly requested or included by the maximum preset.
 
 All automated file deletion must use an age threshold, defaulting to files older than 7 days, except recycle bin cleanup. Component store cleanup must use DISM instead of manually deleting WinSxS files.
@@ -23,9 +27,10 @@ All automated file deletion must use an age threshold, defaulting to files older
 Do not automatically delete:
 
 - `C:\Windows`, except `C:\Windows\Temp` contents.
-- `C:\Program Files`, `C:\Program Files (x86)`, `C:\ProgramData`.
+- `C:\Program Files`, `C:\Program Files (x86)`, or arbitrary `C:\ProgramData` content. The exact NVIDIA download-artifact allowlist above is the only automated `ProgramData` exception.
 - User documents, desktop, downloads, pictures, videos, music, source code, OneDrive, Dropbox, iCloud Drive, or synced folders.
 - Package manager caches, virtual environments, model caches, or IDE caches unless the user explicitly names the ecosystem and accepts the recovery cost.
+- Conda package directories directly. Use `conda clean --all --dry-run --json`, then an approved `conda clean`; never remove `pkgs` by filesystem recursion.
 - Any path that cannot be resolved to an allowed base path.
 - `C:\Windows\WinSxS` contents directly. Use DISM component cleanup only.
 - `Windows.old`, system restore points, hibernation files, page files, or installed Windows features automatically.
@@ -40,6 +45,22 @@ Do not automatically delete:
 - Diagnostic dumps and error reports are useful for troubleshooting. Only clean them after the user accepts losing old diagnostic data.
 - Large-file scans are advisory only. They should produce candidates for review, not delete files.
 - Directory traversal must skip reparse points and refuse paths outside the resolved allowlist.
+- Refuse a cleanup target when the target itself is a reparse point. Skip nested reparse points, count them, and include bounded samples in the report.
+- Treat full-drive directory totals as logical size estimates. NTFS hard links can make paths such as WinSxS and System32 overlap; only supported Windows tools can estimate component-store cleanup.
+- An empty current-user recycle bin may make `Clear-RecycleBin` report that a path does not exist. Measure only the current user SID directory and distinguish empty/unavailable from a material cleanup failure.
+- Do not infer successful cleanup from summed file lengths alone. Compare drive free space before and after; keep both values because active applications can recreate caches during cleanup.
+- Do not force-close applications to remove locked cache files. Report and skip locked files.
+
+## Field-Tested Triage Order
+
+Use this order when a machine is critically low on space:
+
+1. Capture drive capacity and run a comprehensive read-only inventory.
+2. Audit high-confidence rebuildable caches (temp, pip/npm, shader caches, downloaded update artifacts, crash dumps, installer temp).
+3. Clean only approved categories, then verify actual free-space increase.
+4. Review rebuildable project artifacts such as `node_modules`, Rust `target`, and repackaging work directories manually; never automate deletion from arbitrary projects.
+5. Review Downloads and cloud/offline application caches manually or through the owning application.
+6. Uninstall unused applications through Windows rather than deleting installation directories.
 
 ## Approval Wording
 

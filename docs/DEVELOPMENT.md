@@ -6,6 +6,7 @@ This guide describes local checks and safety expectations for C Drive Cleaner Sk
 
 - `c-drive-cleaner/SKILL.md` contains the skill instructions.
 - `c-drive-cleaner/scripts/c_drive_cleaner.ps1` is the cleanup script.
+- `c-drive-cleaner/scripts/storage_inventory.ps1` is the read-only comprehensive inventory script.
 - `c-drive-cleaner/references/safety.md` documents the safety model.
 - `examples/sample-audit-report.json` shows report output.
 
@@ -16,12 +17,26 @@ Run this from the repository root:
 ```powershell
 $tokens = $null
 $errors = $null
-[System.Management.Automation.Language.Parser]::ParseFile(
-  "c-drive-cleaner/scripts/c_drive_cleaner.ps1",
-  [ref]$tokens,
-  [ref]$errors
-) | Out-Null
-if ($errors.Count -gt 0) { $errors | Format-List; exit 1 }
+Get-ChildItem "c-drive-cleaner/scripts/*.ps1" | ForEach-Object {
+  $tokens = $null
+  $errors = $null
+  [System.Management.Automation.Language.Parser]::ParseFile(
+    $_.FullName,
+    [ref]$tokens,
+    [ref]$errors
+  ) | Out-Null
+  if ($errors.Count -gt 0) { $errors | Format-List; exit 1 }
+}
+```
+
+## Inventory Smoke Check
+
+Scan only the repository directory so CI does not traverse the runner's whole system drive:
+
+```powershell
+.\c-drive-cleaner\scripts\storage_inventory.ps1 -RootPath . -MaxDepth 3 -ReportPath .\inventory-smoke.json | Out-Null
+$report = Get-Content -Raw .\inventory-smoke.json | ConvertFrom-Json
+if ($report.FileCount -lt 1 -or $report.IsWholeDrive) { throw "Inventory smoke check failed" }
 ```
 
 ## Audit-First Manual Check
@@ -47,3 +62,6 @@ Changes must preserve:
 - Documented allowlist boundaries.
 - No automatic deletion of Downloads, Documents, Desktop files, source code, synced folders, arbitrary large files, installed apps, restore points, or `Windows.old`.
 - Safe handling for locked files, permission-denied files, and reparse points.
+- Bounded reporting for errors and skipped reparse points.
+- Separate logical-size inventory from reclaimable-space estimates.
+- Actual drive free-space verification after cleanup.
