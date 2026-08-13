@@ -15,17 +15,32 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Parse cleanup script
+      - name: Parse PowerShell scripts
         shell: pwsh
         run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            "c-drive-cleaner/scripts/c_drive_cleaner.ps1",
-            [ref]$tokens,
-            [ref]$errors
-          ) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | Format-List
-            exit 1
+          Get-ChildItem "c-drive-cleaner/scripts/*.ps1" | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List
+              exit 1
+            }
           }
+
+      - name: Smoke-test read-only inventory
+        shell: pwsh
+        run: |
+          ./c-drive-cleaner/scripts/storage_inventory.ps1 `
+            -RootPath . `
+            -MaxDepth 3 `
+            -TopPerDepth 10 `
+            -ReportPath ./inventory-smoke.json | Out-Null
+          $report = Get-Content -Raw ./inventory-smoke.json | ConvertFrom-Json
+          if ($report.FileCount -lt 1) { throw "Inventory returned no files" }
+          if ($report.IsWholeDrive) { throw "Smoke test escaped the repository root" }
+          if ($report.InaccessibleCount -ne 0) { throw "Repository inventory had inaccessible paths" }

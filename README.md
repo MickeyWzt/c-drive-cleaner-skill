@@ -39,11 +39,13 @@ Windows cleanup requests can get dangerous quickly. This skill gives Codex a cau
 
 Use it when you want to:
 
+- Inventory the full drive read-only, with directory hotspots, large files, inaccessible paths, and skipped reparse points.
 - Audit reclaimable space on `C:`.
 - Clean user temp and Windows temp files with an age threshold.
 - Use deeper opt-in cleanup presets for browser caches, recycle bin contents, Windows update caches, delivery optimization caches, error reports, thumbnails, shader caches, and diagnostic dumps.
 - Run Windows component store cleanup through DISM when explicitly requested.
 - Produce a JSON report before and after cleanup.
+- Compare script-counted deletions with the drive's actual free-space increase.
 - Keep downloads, documents, projects, synced folders, and app installs out of scope.
 
 ## Safety Model
@@ -59,6 +61,7 @@ The default behavior is intentionally conservative:
 - Maximum cleanup is opt-in with `-Preset Maximum` and adds DISM component cleanup.
 - Large-file scanning is advisory only and never deletes personal files.
 - Deletion is restricted to an allowlist of temp/cache locations.
+- Package-manager caches, NVIDIA downloaded updates, and Squirrel installer temp are separate explicit opt-ins and are not silently added by a preset.
 
 ## Cleanup Presets
 
@@ -78,11 +81,18 @@ c-drive-cleaner/
   agents/openai.yaml
   references/safety.md
   scripts/c_drive_cleaner.ps1
+  scripts/storage_inventory.ps1
 ```
 
 ## Quick Start
 
-Run an audit:
+Run a comprehensive read-only inventory:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\storage_inventory.ps1 -Drive C: -ReportPath .\c-drive-inventory.json
+```
+
+Run a reclaimable-space audit:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -ReportPath .\c-drive-cleaner-report.json
@@ -98,6 +108,12 @@ Run a deeper audit for more reclaimable space:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -Preset Deep -ReportPath .\c-drive-cleaner-deep-report.json
+```
+
+Audit high-yield developer and installer caches without deleting them:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludePackageManagerCaches -IncludeNvidiaDownloadCache -IncludeInstallerTemp -ReportPath .\c-drive-cleaner-extra-report.json
 ```
 
 Run an approved temp-file cleanup:
@@ -132,7 +148,7 @@ Targets:
   - Diagnostic crash dumps
 ```
 
-The script skips locked or permission-denied files and records them in the report instead of forcing deletion.
+The scripts skip locked or permission-denied files, never follow reparse points, and record bounded evidence in the report instead of forcing deletion. Inventory directory sizes are logical estimates; NTFS hard links can make Windows component directories overlap, so WinSxS must be analyzed and cleaned only through supported Windows tooling.
 
 ## Install as a Local Codex Skill
 

@@ -2,5 +2,6 @@
 *.tmp
 *-report.json
 *-after.json
+inventory-smoke.json
 .DS_Store
 Thumbs.db

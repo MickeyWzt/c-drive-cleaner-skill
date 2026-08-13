@@ -14,6 +14,9 @@
   "IncludeThumbnailCache": true,
   "IncludeShaderCaches": true,
   "IncludeDiagnosticDumps": true,
+  "IncludePackageManagerCaches": false,
+  "IncludeNvidiaDownloadCache": false,
+  "IncludeInstallerTemp": false,
   "ScanLargeFiles": true,
   "RunComponentCleanup": false,
   "FreeSpaceBefore": {
@@ -38,6 +41,10 @@
   "EstimatedReclaimable": "1.32 GB",
   "DeletedBytes": 0,
   "Deleted": "0 B",
+  "ActualFreeSpaceIncreaseBytes": 0,
+  "ActualFreeSpaceIncrease": "0 B",
+  "AccountingDifferenceBytes": 0,
+  "AccountingDifference": "0 B",
   "Targets": [
     {
       "Category": "User temp",
@@ -49,6 +56,11 @@
       "HumanSize": "267.21 MB",
       "CleanMethod": "DeleteFiles",
       "Risk": "Low",
+      "SkippedReparsePointCount": 1,
+      "SkippedReparsePoints": [
+        "C:\\Users\\example\\AppData\\Local\\Temp\\vendor-junction"
+      ],
+      "ErrorCount": 1,
       "Errors": [
         "Access to a locked temp file is denied."
       ]
@@ -63,18 +75,24 @@
       "HumanSize": "871.00 MB",
       "CleanMethod": "DeleteFiles",
       "Risk": "Admin recommended; skip if updates are actively installing",
+      "SkippedReparsePointCount": 0,
+      "SkippedReparsePoints": [],
+      "ErrorCount": 0,
       "Errors": []
     },
     {
-      "Category": "Recycle Bin",
-      "Path": "C:\\$Recycle.Bin",
-      "ResolvedPath": "C:\\$Recycle.Bin",
+      "Category": "Recycle Bin (current user)",
+      "Path": "C:\\$Recycle.Bin\\S-1-5-21-example-1001",
+      "ResolvedPath": "C:\\$Recycle.Bin\\S-1-5-21-example-1001",
       "Included": true,
       "FileCount": 24,
       "Bytes": 228474763,
       "HumanSize": "217.89 MB",
       "CleanMethod": "RecycleBin",
       "Risk": "Deletes user-discarded files permanently",
+      "SkippedReparsePointCount": 0,
+      "SkippedReparsePoints": [],
+      "ErrorCount": 0,
       "Errors": []
     }
   ],

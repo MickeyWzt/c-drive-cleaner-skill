@@ -20,6 +20,9 @@ param(
     [switch]$IncludeThumbnailCache,
     [switch]$IncludeShaderCaches,
     [switch]$IncludeDiagnosticDumps,
+    [switch]$IncludePackageManagerCaches,
+    [switch]$IncludeNvidiaDownloadCache,
+    [switch]$IncludeInstallerTemp,
     [switch]$ScanLargeFiles,
     [switch]$RunComponentCleanup,
     [switch]$ConfirmClean,
@@ -47,10 +50,12 @@ if ($Preset -eq "Maximum") {
 
 function Convert-Bytes {
     param([Int64]$Bytes)
-    if ($Bytes -ge 1TB) { return "{0:N2} TB" -f ($Bytes / 1TB) }
-    if ($Bytes -ge 1GB) { return "{0:N2} GB" -f ($Bytes / 1GB) }
-    if ($Bytes -ge 1MB) { return "{0:N2} MB" -f ($Bytes / 1MB) }
-    if ($Bytes -ge 1KB) { return "{0:N2} KB" -f ($Bytes / 1KB) }
+    $sign = if ($Bytes -lt 0) { "-" } else { "" }
+    $absoluteBytes = [Math]::Abs($Bytes)
+    if ($absoluteBytes -ge 1TB) { return "$sign$('{0:N2}' -f ($absoluteBytes / 1TB)) TB" }
+    if ($absoluteBytes -ge 1GB) { return "$sign$('{0:N2}' -f ($absoluteBytes / 1GB)) GB" }
+    if ($absoluteBytes -ge 1MB) { return "$sign$('{0:N2}' -f ($absoluteBytes / 1MB)) MB" }
+    if ($absoluteBytes -ge 1KB) { return "$sign$('{0:N2}' -f ($absoluteBytes / 1KB)) KB" }
     return "$Bytes B"
 }
 
@@ -159,6 +164,44 @@ function Get-CleanupTargets {
             return
         }
 
+        $seenKey = "$CleanMethod|$resolved|$($Patterns -join ',')"
+        if (-not $seen.Add($seenKey)) { return }
+
+        try {
+            $targetItem = Get-Item -Force -LiteralPath $resolved -ErrorAction Stop
+            if (($targetItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                $targets.Add([PSCustomObject]@{
+                    Category = $Category
+                    Path = $Path
+                    ResolvedPath = $resolved
+                    Enabled = $false
+                    Exists = $true
+                    Reason = "Target itself is a reparse point"
+                    Patterns = @($Patterns)
+                    Recurse = $Recurse
+                    UseAgeFilter = $UseAgeFilter
+                    CleanMethod = $CleanMethod
+                    Risk = $Risk
+                }) | Out-Null
+                return
+            }
+        } catch {
+            $targets.Add([PSCustomObject]@{
+                Category = $Category
+                Path = $Path
+                ResolvedPath = $resolved
+                Enabled = $false
+                Exists = $true
+                Reason = "Target validation failed: $($_.Exception.Message)"
+                Patterns = @($Patterns)
+                Recurse = $Recurse
+                UseAgeFilter = $UseAgeFilter
+                CleanMethod = $CleanMethod
+                Risk = $Risk
+            }) | Out-Null
+            return
+        }
+
         if (-not (Test-UnderPath -Path $resolved -BasePath $driveRoot)) {
             $targets.Add([PSCustomObject]@{
                 Category = $Category
@@ -176,22 +219,19 @@ function Get-CleanupTargets {
             return
         }
 
-        $seenKey = "$CleanMethod|$resolved|$($Patterns -join ',')"
-        if ($seen.Add($seenKey)) {
-            $targets.Add([PSCustomObject]@{
-                Category = $Category
-                Path = $Path
-                ResolvedPath = $resolved
-                Enabled = $Enabled
-                Exists = $true
-                Reason = if ($Enabled) { "Included" } else { "Not selected" }
-                Patterns = @($Patterns)
-                Recurse = $Recurse
-                UseAgeFilter = $UseAgeFilter
-                CleanMethod = $CleanMethod
-                Risk = $Risk
-            }) | Out-Null
-        }
+        $targets.Add([PSCustomObject]@{
+            Category = $Category
+            Path = $Path
+            ResolvedPath = $resolved
+            Enabled = $Enabled
+            Exists = $true
+            Reason = if ($Enabled) { "Included" } else { "Not selected" }
+            Patterns = @($Patterns)
+            Recurse = $Recurse
+            UseAgeFilter = $UseAgeFilter
+            CleanMethod = $CleanMethod
+            Risk = $Risk
+        }) | Out-Null
     }
 
     Add-Target -Category "User temp" -Path $env:TEMP
@@ -220,7 +260,13 @@ function Get-CleanupTargets {
     }
 
     if ($IncludeRecycleBin) {
-        Add-Target -Category "Recycle Bin" -Path (Join-Path $driveRoot '$Recycle.Bin') -UseAgeFilter $false -CleanMethod "RecycleBin" -Risk "Deletes user-discarded files permanently"
+        try {
+            $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            $currentUserRecycleBin = Join-Path (Join-Path $driveRoot '$Recycle.Bin') $sid
+            Add-Target -Category "Recycle Bin (current user)" -Path $currentUserRecycleBin -UseAgeFilter $false -CleanMethod "RecycleBin" -Risk "Deletes user-discarded files permanently"
+        } catch {
+            Add-Target -Category "Recycle Bin (current user)" -Path (Join-Path $driveRoot '$Recycle.Bin\current-user-unavailable') -Enabled $false -UseAgeFilter $false -CleanMethod "RecycleBin" -Risk "Could not resolve the current user SID"
+        }
     }
 
     if ($IncludeWindowsUpdateCache) {
@@ -256,8 +302,26 @@ function Get-CleanupTargets {
     if ($IncludeDiagnosticDumps) {
         $local = [Environment]::GetFolderPath("LocalApplicationData")
         Add-Target -Category "User diagnostic crash dumps" -Path (Join-Path $local "CrashDumps") -Patterns @("*.dmp", "*.mdmp", "*.hdmp") -Risk "Removes debugging dumps"
+        Add-Target -Category "Overwolf crash dumps" -Path (Join-Path $local "Overwolf\CrashDumps") -Patterns @("*.dmp", "*.mdmp", "*.hdmp") -Risk "Removes Overwolf debugging dumps"
         Add-Target -Category "Windows minidumps" -Path (Join-Path $driveRoot "Windows\Minidump") -Patterns @("*.dmp") -Risk "Admin may be required; removes debugging dumps"
         Add-Target -Category "Windows memory dump" -Path (Join-Path $driveRoot "Windows\MEMORY.DMP") -Patterns @("*.dmp") -Recurse $false -Risk "Admin may be required; removes kernel memory dump"
+    }
+
+    if ($IncludePackageManagerCaches) {
+        $local = [Environment]::GetFolderPath("LocalApplicationData")
+        Add-Target -Category "pip cache" -Path (Join-Path $local "pip\cache") -Risk "Packages will be downloaded again"
+        Add-Target -Category "npm content cache" -Path (Join-Path $local "npm-cache\_cacache") -Risk "Packages will be downloaded again"
+        Add-Target -Category "npx temporary packages" -Path (Join-Path $local "npm-cache\_npx") -Risk "npx packages will be downloaded again"
+        Add-Target -Category "uv download cache" -Path (Join-Path $local "uv\cache") -Risk "Packages and Python archives may be downloaded again"
+    }
+
+    if ($IncludeNvidiaDownloadCache) {
+        Add-Target -Category "NVIDIA downloaded update artifacts" -Path (Join-Path $driveRoot "ProgramData\NVIDIA Corporation\NVIDIA App\UpdateFramework\ota-artifacts") -Risk "Admin may be required; drivers or NVIDIA App packages will be downloaded again"
+    }
+
+    if ($IncludeInstallerTemp) {
+        $local = [Environment]::GetFolderPath("LocalApplicationData")
+        Add-Target -Category "Squirrel installer temporary files" -Path (Join-Path $local "SquirrelTemp") -Risk "Close Electron applications before cleanup"
     }
 
     return $targets
@@ -274,12 +338,18 @@ function Get-CandidateFiles {
 
     $items = New-Object System.Collections.Generic.List[object]
     $errors = New-Object System.Collections.Generic.List[string]
+    $skippedReparsePoints = New-Object System.Collections.Generic.List[string]
+    $errorCount = 0
+    $skippedReparsePointCount = 0
 
     try {
         $rootItem = Get-Item -LiteralPath $Root -Force -ErrorAction Stop
         if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $errorCount += 1
+            $skippedReparsePointCount += 1
             $errors.Add("Skipped reparse point: $Root") | Out-Null
-            return [PSCustomObject]@{ Files = $items; Errors = $errors }
+            $skippedReparsePoints.Add($Root) | Out-Null
+            return [PSCustomObject]@{ Files = $items; Errors = $errors; ErrorCount = $errorCount; SkippedReparsePoints = $skippedReparsePoints; SkippedReparsePointCount = $skippedReparsePointCount }
         }
 
         if (-not $rootItem.PSIsContainer) {
@@ -287,11 +357,12 @@ function Get-CandidateFiles {
                 ((-not $UseAgeFilter) -or $rootItem.LastWriteTime -lt $Cutoff)) {
                 $items.Add($rootItem) | Out-Null
             }
-            return [PSCustomObject]@{ Files = $items; Errors = $errors }
+            return [PSCustomObject]@{ Files = $items; Errors = $errors; ErrorCount = $errorCount; SkippedReparsePoints = $skippedReparsePoints; SkippedReparsePointCount = $skippedReparsePointCount }
         }
     } catch {
-        $errors.Add($_.Exception.Message) | Out-Null
-        return [PSCustomObject]@{ Files = $items; Errors = $errors }
+        $errorCount += 1
+        if ($errors.Count -lt 100) { $errors.Add($_.Exception.Message) | Out-Null }
+        return [PSCustomObject]@{ Files = $items; Errors = $errors; ErrorCount = $errorCount; SkippedReparsePoints = $skippedReparsePoints; SkippedReparsePointCount = $skippedReparsePointCount }
     }
 
     $queue = New-Object 'System.Collections.Generic.Queue[string]'
@@ -310,10 +381,12 @@ function Get-CandidateFiles {
                 ForEach-Object { $items.Add($_) | Out-Null }
 
             foreach ($err in $fileErrors) {
-                $errors.Add($err.Exception.Message) | Out-Null
+                $errorCount += 1
+                if ($errors.Count -lt 100) { $errors.Add($err.Exception.Message) | Out-Null }
             }
         } catch {
-            $errors.Add($_.Exception.Message) | Out-Null
+            $errorCount += 1
+            if ($errors.Count -lt 100) { $errors.Add($_.Exception.Message) | Out-Null }
         }
 
         if (-not $Recurse) { continue }
@@ -321,20 +394,33 @@ function Get-CandidateFiles {
         try {
             $dirErrors = @()
             Get-ChildItem -LiteralPath $current -Force -Directory -ErrorAction SilentlyContinue -ErrorVariable dirErrors |
-                Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0 } |
-                ForEach-Object { $queue.Enqueue($_.FullName) }
+                ForEach-Object {
+                    if (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                        $skippedReparsePointCount += 1
+                        if ($skippedReparsePoints.Count -lt 100) {
+                            $skippedReparsePoints.Add($_.FullName) | Out-Null
+                        }
+                    } else {
+                        $queue.Enqueue($_.FullName)
+                    }
+                }
 
             foreach ($err in $dirErrors) {
-                $errors.Add($err.Exception.Message) | Out-Null
+                $errorCount += 1
+                if ($errors.Count -lt 100) { $errors.Add($err.Exception.Message) | Out-Null }
             }
         } catch {
-            $errors.Add($_.Exception.Message) | Out-Null
+            $errorCount += 1
+            if ($errors.Count -lt 100) { $errors.Add($_.Exception.Message) | Out-Null }
         }
     }
 
     [PSCustomObject]@{
         Files = $items
         Errors = $errors
+        ErrorCount = $errorCount
+        SkippedReparsePoints = $skippedReparsePoints
+        SkippedReparsePointCount = $skippedReparsePointCount
     }
 }
 
@@ -355,6 +441,9 @@ function Measure-Target {
             HumanSize = "0 B"
             CleanMethod = $Target.CleanMethod
             Risk = $Target.Risk
+            SkippedReparsePointCount = 0
+            SkippedReparsePoints = @()
+            ErrorCount = 1
             Errors = @($Target.Reason)
         }
     }
@@ -373,7 +462,10 @@ function Measure-Target {
         HumanSize = Convert-Bytes $bytes
         CleanMethod = $Target.CleanMethod
         Risk = $Target.Risk
-        Errors = @($scan.Errors | Select-Object -Unique)
+        SkippedReparsePointCount = $scan.SkippedReparsePointCount
+        SkippedReparsePoints = @($scan.SkippedReparsePoints | Select-Object -Unique -First 20)
+        ErrorCount = $scan.ErrorCount
+        Errors = @($scan.Errors | Select-Object -Unique -First 50)
     }
 }
 
@@ -387,10 +479,12 @@ function Remove-TargetFiles {
     $deletedBytes = [Int64]0
     $deletedCount = 0
     $errors = New-Object System.Collections.Generic.List[string]
+    $deleteErrorCount = 0
 
     foreach ($file in $scan.Files) {
         if (-not (Test-UnderPath -Path $file.FullName -BasePath $Target.ResolvedPath)) {
-            $errors.Add("Refused outside allowlist: $($file.FullName)") | Out-Null
+            $deleteErrorCount += 1
+            if ($errors.Count -lt 100) { $errors.Add("Refused outside allowlist: $($file.FullName)") | Out-Null }
             continue
         }
 
@@ -400,12 +494,13 @@ function Remove-TargetFiles {
             $deletedBytes += $length
             $deletedCount += 1
         } catch {
-            $errors.Add("$($file.FullName): $($_.Exception.Message)") | Out-Null
+            $deleteErrorCount += 1
+            if ($errors.Count -lt 100) { $errors.Add("$($file.FullName): $($_.Exception.Message)") | Out-Null }
         }
     }
 
     foreach ($err in $scan.Errors) {
-        $errors.Add($err) | Out-Null
+        if ($errors.Count -lt 100) { $errors.Add($err) | Out-Null }
     }
 
     [PSCustomObject]@{
@@ -414,7 +509,10 @@ function Remove-TargetFiles {
         DeletedFiles = $deletedCount
         DeletedBytes = $deletedBytes
         HumanDeleted = Convert-Bytes $deletedBytes
-        Errors = @($errors | Select-Object -Unique)
+        SkippedReparsePointCount = $scan.SkippedReparsePointCount
+        SkippedReparsePoints = @($scan.SkippedReparsePoints | Select-Object -Unique -First 20)
+        ErrorCount = [int]($scan.ErrorCount + $deleteErrorCount)
+        Errors = @($errors | Select-Object -Unique -First 100)
     }
 }
 
@@ -525,6 +623,8 @@ $estimated = [Int64](($measurements | Where-Object { $_.Included } | Measure-Obj
 if ($null -eq $estimated) { $estimated = 0 }
 $deleted = [Int64](($cleanupResults | Measure-Object -Property DeletedBytes -Sum).Sum)
 if ($null -eq $deleted) { $deleted = 0 }
+$actualFreeSpaceIncrease = [Int64]($after.FreeBytes - $before.FreeBytes)
+$accountingDifference = [Int64]($actualFreeSpaceIncrease - $deleted)
 
 $report = [PSCustomObject]@{
     StartedAt = $startedAt.ToString("o")
@@ -542,6 +642,9 @@ $report = [PSCustomObject]@{
     IncludeThumbnailCache = [bool]$IncludeThumbnailCache
     IncludeShaderCaches = [bool]$IncludeShaderCaches
     IncludeDiagnosticDumps = [bool]$IncludeDiagnosticDumps
+    IncludePackageManagerCaches = [bool]$IncludePackageManagerCaches
+    IncludeNvidiaDownloadCache = [bool]$IncludeNvidiaDownloadCache
+    IncludeInstallerTemp = [bool]$IncludeInstallerTemp
     ScanLargeFiles = [bool]$ScanLargeFiles
     RunComponentCleanup = [bool]$RunComponentCleanup
     FreeSpaceBefore = $before
@@ -550,6 +653,10 @@ $report = [PSCustomObject]@{
     EstimatedReclaimable = Convert-Bytes $estimated
     DeletedBytes = $deleted
     Deleted = Convert-Bytes $deleted
+    ActualFreeSpaceIncreaseBytes = $actualFreeSpaceIncrease
+    ActualFreeSpaceIncrease = Convert-Bytes $actualFreeSpaceIncrease
+    AccountingDifferenceBytes = $accountingDifference
+    AccountingDifference = Convert-Bytes $accountingDifference
     Targets = $measurements
     CleanupResults = $cleanupResults
     RecycleBin = $recycleResult
