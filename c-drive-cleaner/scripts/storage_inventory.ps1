@@ -233,6 +233,7 @@ $report = [PSCustomObject]@{
     DirectoryHotspots = $directoryHotspotArray
     TopFiles = $topFiles
     Notes = @(
+        "Inventory reads filesystem metadata such as path, size, timestamps, and attributes; it does not open private document contents.",
         "Directory sizes are logical file-size sums, not guaranteed physical allocation.",
         "NTFS hard links, especially WinSxS files also linked into Windows directories, can make directory totals overlap.",
         "Protected paths are reported as inaccessible; reparse points are never followed.",

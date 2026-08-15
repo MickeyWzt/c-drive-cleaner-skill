@@ -40,6 +40,7 @@ Windows cleanup requests can get dangerous quickly. This skill gives Codex a cau
 Use it when you want to:
 
 - Inventory the full drive read-only, with directory hotspots, large files, inaccessible paths, and skipped reparse points.
+- Inventory project trees read-only and separate reproducible dependencies/compiler output from ambiguous releases and deliverables.
 - Audit reclaimable space on `C:`.
 - Clean user temp and Windows temp files with an age threshold.
 - Use deeper opt-in cleanup presets for browser caches, recycle bin contents, Windows update caches, delivery optimization caches, error reports, thumbnails, shader caches, and diagnostic dumps.
@@ -61,7 +62,8 @@ The default behavior is intentionally conservative:
 - Maximum cleanup is opt-in with `-Preset Maximum` and adds DISM component cleanup.
 - Large-file scanning is advisory only and never deletes personal files.
 - Deletion is restricted to an allowlist of temp/cache locations.
-- Package-manager caches, NVIDIA downloaded updates, and Squirrel installer temp are separate explicit opt-ins and are not silently added by a preset.
+- pip, npm/npx, and uv caches have separate explicit opt-ins; NVIDIA downloaded updates and Squirrel installer temp are also opt-in and are not silently added by a preset.
+- Ordinary browser-cache cleanup excludes Service Worker storage, cookies, history, passwords, extensions, and login data.
 
 ## Cleanup Presets
 
@@ -79,8 +81,11 @@ The script still does not automatically delete Downloads, Documents, Desktop fil
 c-drive-cleaner/
   SKILL.md
   agents/openai.yaml
+  references/package-caches.md
+  references/project-artifacts.md
   references/safety.md
   scripts/c_drive_cleaner.ps1
+  scripts/project_artifact_inventory.ps1
   scripts/storage_inventory.ps1
 ```
 
@@ -110,10 +115,16 @@ Run a deeper audit for more reclaimable space:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -Preset Deep -ReportPath .\c-drive-cleaner-deep-report.json
 ```
 
-Audit high-yield developer and installer caches without deleting them:
+Audit selected high-yield package and installer caches without deleting them:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludePackageManagerCaches -IncludeNvidiaDownloadCache -IncludeInstallerTemp -ReportPath .\c-drive-cleaner-extra-report.json
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludeNpmCache -IncludeUvCache -IncludeNvidiaDownloadCache -IncludeInstallerTemp -ReportPath .\c-drive-cleaner-extra-report.json
+```
+
+Inventory rebuildable project artifacts without deleting them:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\project_artifact_inventory.ps1 -RootPath C:\path\to\projects -MinSizeMB 16 -ReportPath .\project-artifacts.json
 ```
 
 Run an approved temp-file cleanup:
@@ -148,7 +159,7 @@ Targets:
   - Diagnostic crash dumps
 ```
 
-The scripts skip locked or permission-denied files, never follow reparse points, and record bounded evidence in the report instead of forcing deletion. Inventory directory sizes are logical estimates; NTFS hard links can make Windows component directories overlap, so WinSxS must be analyzed and cleaned only through supported Windows tooling.
+The scripts skip locked or permission-denied files, never follow reparse points, and record bounded evidence in the report instead of forcing deletion. Project artifact discovery is advisory: even `node_modules` or Rust `target` needs an exact preflight and item-level approval. Inventory directory sizes are logical estimates; NTFS hard links can make Windows component directories overlap, so WinSxS must be analyzed and cleaned only through supported Windows tooling.
 
 ## Install as a Local Codex Skill
 

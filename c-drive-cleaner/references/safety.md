@@ -6,7 +6,7 @@ The bundled script may automate only these categories:
 
 - User temp directories from `%TEMP%` and `%TMP%`.
 - `C:\Windows\Temp`.
-- Common browser cache directories when explicitly requested.
+- Common browser Cache, Code Cache, and GPUCache directories when explicitly requested. Service Worker storage and browser profile data are excluded.
 - Recycle bin cleanup when explicitly requested.
 - Windows Update download cache when explicitly requested or included by a deep preset.
 - Delivery Optimization cache when explicitly requested or included by a deep preset.
@@ -15,7 +15,7 @@ The bundled script may automate only these categories:
 - DirectX and NVIDIA shader caches when explicitly requested or included by a deep preset.
 - Diagnostic dump files such as user crash dumps, Windows minidumps, and `C:\Windows\MEMORY.DMP` when explicitly requested or included by a deep preset.
 - Overwolf crash dumps under `%LOCALAPPDATA%\Overwolf\CrashDumps` when diagnostic dumps are explicitly requested.
-- pip, npm/npx, and uv download caches only with `-IncludePackageManagerCaches`. These are never included by a preset.
+- pip, npm/npx, and uv download caches only with their per-ecosystem switches. `-IncludePackageManagerCaches` is a compatibility alias for all three and is never included by a preset.
 - NVIDIA App downloaded driver/application artifacts only with `-IncludeNvidiaDownloadCache`. This exact `ProgramData` path is the only exception to the general `ProgramData` prohibition.
 - Squirrel installer temporary files only with `-IncludeInstallerTemp`.
 - Windows component store cleanup through `dism.exe /Online /Cleanup-Image /StartComponentCleanup` when explicitly requested or included by the maximum preset.
@@ -30,6 +30,9 @@ Do not automatically delete:
 - `C:\Program Files`, `C:\Program Files (x86)`, or arbitrary `C:\ProgramData` content. The exact NVIDIA download-artifact allowlist above is the only automated `ProgramData` exception.
 - User documents, desktop, downloads, pictures, videos, music, source code, OneDrive, Dropbox, iCloud Drive, or synced folders.
 - Package manager caches, virtual environments, model caches, or IDE caches unless the user explicitly names the ecosystem and accepts the recovery cost.
+- Browser Service Worker storage, cookies, saved passwords, history, extensions, login state, or complete browser profiles. Ordinary browser-cache approval does not cover these.
+- Cloud/offline application data such as WPS Cloud Files, music downloads, chat data, model caches, Playwright runtimes, and IDE indexes unless the owning application and recovery cost are reviewed separately.
+- Project source trees or broad project/work directories. Known rebuildable child directories still require the project-artifact workflow and item-level approval.
 - Conda package directories directly. Use `conda clean --all --dry-run --json`, then an approved `conda clean`; never remove `pkgs` by filesystem recursion.
 - Any path that cannot be resolved to an allowed base path.
 - `C:\Windows\WinSxS` contents directly. Use DISM component cleanup only.
@@ -50,6 +53,9 @@ Do not automatically delete:
 - An empty current-user recycle bin may make `Clear-RecycleBin` report that a path does not exist. Measure only the current user SID directory and distinguish empty/unavailable from a material cleanup failure.
 - Do not infer successful cleanup from summed file lengths alone. Compare drive free space before and after; keep both values because active applications can recreate caches during cleanup.
 - Do not force-close applications to remove locked cache files. Report and skip locked files.
+- Treat application updater downloads as review candidates, not a broad cleanup category. Require an exact file list, an age threshold such as 30 days, proof that the owning application is not running, and preservation of the current installed version and any intentionally retained rollback package.
+- Read file metadata for inventory; do not open private document contents merely to estimate disk usage.
+- If a deletion attempt is interrupted, do not assume its original preflight remains valid. Re-inventory current state, repeat path and reparse checks, and continue only with still-present approved targets.
 
 ## Field-Tested Triage Order
 
@@ -58,9 +64,11 @@ Use this order when a machine is critically low on space:
 1. Capture drive capacity and run a comprehensive read-only inventory.
 2. Audit high-confidence rebuildable caches (temp, pip/npm, shader caches, downloaded update artifacts, crash dumps, installer temp).
 3. Clean only approved categories, then verify actual free-space increase.
-4. Review rebuildable project artifacts such as `node_modules`, Rust `target`, and repackaging work directories manually; never automate deletion from arbitrary projects.
+4. Run the read-only project artifact inventory. Separate known rebuildable directories with recovery manifests from ambiguous build, release, artifact, and repackaging outputs.
 5. Review Downloads and cloud/offline application caches manually or through the owning application.
 6. Uninstall unused applications through Windows rather than deleting installation directories.
+
+For remaining high-impact choices, present a numbered decision table. Separate ordinary browser caches from Service Worker/offline storage, and explain the recovery cost of each application cache, model, runtime, project artifact, download, or uninstall candidate.
 
 ## Approval Wording
 

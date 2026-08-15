@@ -21,6 +21,9 @@ param(
     [switch]$IncludeShaderCaches,
     [switch]$IncludeDiagnosticDumps,
     [switch]$IncludePackageManagerCaches,
+    [switch]$IncludePipCache,
+    [switch]$IncludeNpmCache,
+    [switch]$IncludeUvCache,
     [switch]$IncludeNvidiaDownloadCache,
     [switch]$IncludeInstallerTemp,
     [switch]$ScanLargeFiles,
@@ -46,6 +49,14 @@ if ($Preset -in @("Deep", "Maximum")) {
 
 if ($Preset -eq "Maximum") {
     $RunComponentCleanup = $true
+}
+
+# Backward-compatible aggregate alias. Prefer the per-ecosystem switches so
+# audit and cleanup scope can match the user's exact approval.
+if ($IncludePackageManagerCaches) {
+    $IncludePipCache = $true
+    $IncludeNpmCache = $true
+    $IncludeUvCache = $true
 }
 
 function Convert-Bytes {
@@ -242,10 +253,13 @@ function Get-CleanupTargets {
         $local = [Environment]::GetFolderPath("LocalApplicationData")
         Add-Target -Category "Microsoft Edge cache" -Path (Join-Path $local "Microsoft\Edge\User Data\Default\Cache\Cache_Data")
         Add-Target -Category "Microsoft Edge code cache" -Path (Join-Path $local "Microsoft\Edge\User Data\Default\Code Cache")
+        Add-Target -Category "Microsoft Edge GPU cache" -Path (Join-Path $local "Microsoft\Edge\User Data\Default\GPUCache")
         Add-Target -Category "Google Chrome cache" -Path (Join-Path $local "Google\Chrome\User Data\Default\Cache\Cache_Data")
         Add-Target -Category "Google Chrome code cache" -Path (Join-Path $local "Google\Chrome\User Data\Default\Code Cache")
+        Add-Target -Category "Google Chrome GPU cache" -Path (Join-Path $local "Google\Chrome\User Data\Default\GPUCache")
         Add-Target -Category "Brave cache" -Path (Join-Path $local "BraveSoftware\Brave-Browser\User Data\Default\Cache\Cache_Data")
         Add-Target -Category "Brave code cache" -Path (Join-Path $local "BraveSoftware\Brave-Browser\User Data\Default\Code Cache")
+        Add-Target -Category "Brave GPU cache" -Path (Join-Path $local "BraveSoftware\Brave-Browser\User Data\Default\GPUCache")
 
         $firefoxProfileRoot = Join-Path $local "Mozilla\Firefox\Profiles"
         if (Test-Path -LiteralPath $firefoxProfileRoot) {
@@ -307,11 +321,19 @@ function Get-CleanupTargets {
         Add-Target -Category "Windows memory dump" -Path (Join-Path $driveRoot "Windows\MEMORY.DMP") -Patterns @("*.dmp") -Recurse $false -Risk "Admin may be required; removes kernel memory dump"
     }
 
-    if ($IncludePackageManagerCaches) {
+    if ($IncludePipCache) {
         $local = [Environment]::GetFolderPath("LocalApplicationData")
         Add-Target -Category "pip cache" -Path (Join-Path $local "pip\cache") -Risk "Packages will be downloaded again"
+    }
+
+    if ($IncludeNpmCache) {
+        $local = [Environment]::GetFolderPath("LocalApplicationData")
         Add-Target -Category "npm content cache" -Path (Join-Path $local "npm-cache\_cacache") -Risk "Packages will be downloaded again"
         Add-Target -Category "npx temporary packages" -Path (Join-Path $local "npm-cache\_npx") -Risk "npx packages will be downloaded again"
+    }
+
+    if ($IncludeUvCache) {
+        $local = [Environment]::GetFolderPath("LocalApplicationData")
         Add-Target -Category "uv download cache" -Path (Join-Path $local "uv\cache") -Risk "Packages and Python archives may be downloaded again"
     }
 
@@ -643,6 +665,9 @@ $report = [PSCustomObject]@{
     IncludeShaderCaches = [bool]$IncludeShaderCaches
     IncludeDiagnosticDumps = [bool]$IncludeDiagnosticDumps
     IncludePackageManagerCaches = [bool]$IncludePackageManagerCaches
+    IncludePipCache = [bool]$IncludePipCache
+    IncludeNpmCache = [bool]$IncludeNpmCache
+    IncludeUvCache = [bool]$IncludeUvCache
     IncludeNvidiaDownloadCache = [bool]$IncludeNvidiaDownloadCache
     IncludeInstallerTemp = [bool]$IncludeInstallerTemp
     ScanLargeFiles = [bool]$ScanLargeFiles

@@ -3,5 +3,6 @@
 *-report.json
 *-after.json
 inventory-smoke.json
+artifact-inventory-smoke.json
 .DS_Store
 Thumbs.db
