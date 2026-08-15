@@ -73,7 +73,17 @@ Include:
 Package downloads, NVIDIA update artifacts, and installer temp are intentionally not part of any preset. Audit them explicitly:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludePackageManagerCaches -IncludeNvidiaDownloadCache -IncludeInstallerTemp -MinAgeDays 7 -ReportPath .\c-drive-cleaner-extra-report.json
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\c_drive_cleaner.ps1 -Mode Audit -IncludeNpmCache -IncludeUvCache -IncludeNvidiaDownloadCache -IncludeInstallerTemp -MinAgeDays 7 -ReportPath .\c-drive-cleaner-extra-report.json
 ```
 
 If approved, repeat the exact switches with `-Mode Clean -ConfirmClean`. Expect future package, driver, or application updates to download files again.
+
+## Example 7: Review Old Project Build Artifacts
+
+Use the read-only analyzer when project or Codex work directories are large:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\c-drive-cleaner\scripts\project_artifact_inventory.ps1 -RootPath C:\path\to\projects -MinSizeMB 16 -ReportPath .\project-artifacts.json
+```
+
+Review `safe_rebuildable`, `review_missing_manifest`, `review_incomplete_scan`, and `review_output` separately. A `safe_rebuildable` label means recovery evidence was found and the scan completed; it still requires an exact target list, reparse-point preflight, protected-file list, and item-level approval before deletion.

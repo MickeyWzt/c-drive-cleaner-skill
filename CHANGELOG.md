@@ -8,6 +8,9 @@ This project follows a simple public changelog format inspired by Keep a Changel
 
 ### Added
 
+- Read-only project artifact inventory that distinguishes manifest-backed reproducible directories from ambiguous build/release output and missing-manifest cases.
+- Field-tested references for project-artifact preflight/recovery and ecosystem-native package cache maintenance.
+- CI classification coverage for project artifact inventory.
 - Read-only full-drive inventory with depth-bounded directory hotspots, large-file hints, inaccessible-path evidence, and reparse-point evidence.
 - Explicit opt-ins for pip/npm/uv caches, NVIDIA downloaded update artifacts, Squirrel installer temp, and Overwolf crash dumps.
 - Cleanup reports now include actual drive free-space increase and the difference from script-counted deleted bytes.
@@ -19,6 +22,9 @@ This project follows a simple public changelog format inspired by Keep a Changel
 
 ### Changed
 
+- Added separate pip, npm/npx, and uv cache switches while retaining the aggregate package-manager switch as a compatibility alias.
+- Browser cleanup now includes ordinary GPUCache but explicitly excludes Service Worker storage and browser profile data.
+- Safety guidance now covers interrupted cleanup recovery, active-application checks, stale updater review, UTF-8 exact-path manifests, and numbered decision tables.
 - Recycle-bin estimates now target only the current user's SID directory.
 - Cleanup targets that are themselves reparse points are refused; nested reparse points are skipped and reported with bounded samples.
 - Error and reparse-point evidence is bounded to keep reports usable on large machines.

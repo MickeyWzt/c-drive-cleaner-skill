@@ -18,11 +18,12 @@ Treat drive cleanup as destructive. Inventory and audit first, name exact catego
 powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/storage_inventory.ps1 -Drive C: -ReportPath ./c-drive-inventory.json
 ```
 
-3. Run `c_drive_cleaner.ps1 -Mode Audit` for reclaimable estimates. Use `-Preset Deep` for built-in Windows/browser categories. Add package-manager, NVIDIA download, or installer caches only with their explicit switches.
+3. Run `c_drive_cleaner.ps1 -Mode Audit` for reclaimable estimates. Use `-Preset Deep` for built-in Windows/browser categories. Add each approved package ecosystem, NVIDIA download, or installer cache only with its explicit switch.
 4. Separate findings into: high-confidence rebuildable caches; opt-in data with a recovery/download cost; personal or project files requiring manual review; protected system areas that must use supported Windows tooling.
 5. Report inaccessible paths, reparse points, hard-link caveats, locked files, admin requirements, and the exact age threshold. Do not present logical WinSxS size as reclaimable space.
 6. Ask for approval naming every category. Run clean mode only with the same reviewed switches plus `-ConfirmClean`. Close relevant apps when practical; skip locked files instead of terminating processes.
-7. Re-run the same audit and verify both per-category deletion totals and the drive’s actual free-space delta. Explain that application activity can make those numbers differ.
+7. If project/work directories dominate, read `references/project-artifacts.md` and run the read-only artifact inventory. Never treat a project hotspot as automatic deletion authorization.
+8. Re-run the same audit and verify both per-category deletion totals and the drive’s actual free-space delta. Explain that application activity can make those numbers differ.
 
 ## Safe Defaults
 
@@ -30,11 +31,11 @@ Use these defaults unless the user requests otherwise:
 
 - Delete only files older than 7 days from temp/cache categories unless the user explicitly approves a different threshold.
 - Include user temp and Windows temp in the first cleanup proposal.
-- Keep browser caches opt-in with `-IncludeBrowserCaches`.
+- Keep browser caches opt-in with `-IncludeBrowserCaches`. This covers ordinary Cache, Code Cache, and GPUCache only; keep Service Worker storage, cookies, passwords, history, and login data out of scope.
 - Keep recycle bin opt-in with `-IncludeRecycleBin`.
 - Use `-Preset Deep` for a high-yield audit when the user asks for maximum space, then ask before cleaning.
 - Use `-Preset Maximum` only after the user accepts a stronger cleanup that includes DISM component store cleanup.
-- Keep package-manager caches opt-in with `-IncludePackageManagerCaches`; warn that packages will be downloaded again. Never delete Conda `pkgs` directly—use `conda clean --all --dry-run --json` before proposing Conda cleanup.
+- Prefer `-IncludePipCache`, `-IncludeNpmCache`, or `-IncludeUvCache` so approval stays ecosystem-specific. `-IncludePackageManagerCaches` is a compatibility alias for all three. Read `references/package-caches.md` before running native cache maintenance. Never delete Conda `pkgs` directly.
 - Keep NVIDIA driver/app downloads opt-in with `-IncludeNvidiaDownloadCache` and installer temp opt-in with `-IncludeInstallerTemp`.
 - Do not remove downloads, documents, desktop files, OneDrive folders, project folders, source code, package managers, virtual environments, or application install directories automatically.
 - Do not use broad commands like `Remove-Item C:\*`, `rd /s C:\...`, `git clean`, or wildcard deletion outside the script's allowlist.
@@ -64,7 +65,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps
 Audit high-yield developer and installer caches without cleaning them:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -IncludePackageManagerCaches -IncludeNvidiaDownloadCache -IncludeInstallerTemp -MinAgeDays 7 -ReportPath ./c-drive-cleaner-extra-report.json
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/c_drive_cleaner.ps1 -Mode Audit -IncludeNpmCache -IncludeUvCache -IncludeNvidiaDownloadCache -IncludeInstallerTemp -MinAgeDays 7 -ReportPath ./c-drive-cleaner-extra-report.json
+```
+
+Read-only project artifact inventory:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/project_artifact_inventory.ps1 -RootPath C:\path\to\projects -MinSizeMB 16 -ReportPath ./project-artifacts.json
 ```
 
 Approved cleanup of temp files only:
@@ -96,8 +103,11 @@ Report in this shape:
 - Files the script refused to touch because they were outside the allowlist.
 - DISM component cleanup result when `-RunComponentCleanup` or `-Preset Maximum` is used.
 - Actual free-space increase, script-counted deleted bytes, and the accounting difference.
+- A numbered decision table for remaining app/offline data, model caches, downloads, project artifacts, and uninstall candidates.
 - Recommended next step, such as Windows Storage Sense, Disk Cleanup, uninstalling large apps, or manually reviewing large files.
 
 ## References
 
 Read `references/safety.md` before adding new cleanup categories or changing deletion behavior.
+
+Read `references/package-caches.md` for ecosystem-native cache maintenance. Read `references/project-artifacts.md` before proposing deletion inside project or Codex work directories.

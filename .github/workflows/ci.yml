@@ -44,3 +44,33 @@ jobs:
           if ($report.FileCount -lt 1) { throw "Inventory returned no files" }
           if ($report.IsWholeDrive) { throw "Smoke test escaped the repository root" }
           if ($report.InaccessibleCount -ne 0) { throw "Repository inventory had inaccessible paths" }
+
+      - name: Smoke-test project artifact classifications
+        shell: pwsh
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP "artifact-inventory-fixture"
+          $project = Join-Path $fixture "project"
+          $orphan = Join-Path $fixture "orphan"
+          New-Item -ItemType Directory -Force -Path `
+            (Join-Path $project "node_modules/pkg"), `
+            (Join-Path $project "dist"), `
+            (Join-Path $orphan "target/debug") | Out-Null
+          '{}' | Set-Content -Encoding UTF8 (Join-Path $project "package.json")
+          '{}' | Set-Content -Encoding UTF8 (Join-Path $project "package-lock.json")
+          'dependency' | Set-Content -Encoding UTF8 (Join-Path $project "node_modules/pkg/index.js")
+          'delivery' | Set-Content -Encoding UTF8 (Join-Path $project "dist/app.exe")
+          'compiler' | Set-Content -Encoding UTF8 (Join-Path $orphan "target/debug/app.exe")
+
+          ./c-drive-cleaner/scripts/project_artifact_inventory.ps1 `
+            -RootPath $fixture `
+            -MinSizeMB 0 `
+            -ReportPath ./artifact-inventory-smoke.json | Out-Null
+          $report = Get-Content -Raw ./artifact-inventory-smoke.json | ConvertFrom-Json
+          $node = $report.Candidates | Where-Object Name -eq 'node_modules'
+          $dist = $report.Candidates | Where-Object Name -eq 'dist'
+          $target = $report.Candidates | Where-Object Name -eq 'target'
+          if ($report.Mode -ne 'ReadOnlyInventory') { throw "Artifact inventory was not read-only" }
+          if ($node.Classification -ne 'safe_rebuildable') { throw "node_modules classification failed" }
+          if ($dist.Classification -ne 'review_output') { throw "dist classification failed" }
+          if ($target.Classification -ne 'review_missing_manifest') { throw "orphan target classification failed" }
+          if (-not (Test-Path (Join-Path $project "node_modules/pkg/index.js"))) { throw "Analyzer modified fixture" }
